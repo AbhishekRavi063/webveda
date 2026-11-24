@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+client/dist
+server/data
+*.db
+.git
+*.pdf
+.claude
+CLAUDE.md
+CLAUDE.local.md
+README.md

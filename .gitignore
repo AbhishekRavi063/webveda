@@ -1,0 +1,21 @@
+# Dependencies and build output
+node_modules/
+client/dist/
+
+# Local SQLite data (created at runtime)
+server/data/
+*.db
+*.db-*
+
+# Environment and OS files
+.env
+.env.*
+.DS_Store
+
+# Assignment brief (reference only, not part of the app)
+*.pdf
+
+# Claude Code local settings and notes
+.claude/
+CLAUDE.md
+CLAUDE.local.md
