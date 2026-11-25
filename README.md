@@ -2,7 +2,7 @@
 
 A small web app where a reader marks books as read or unread across two lists, and a welcome video resumes from where it was paused.
 
-Stack: React, Vite, Tailwind CSS, Node.js, Express, SQLite.
+Stack: React, Vite, Tailwind CSS, Node.js, Express. Data is stored in SQLite locally and in Postgres (Neon) on Vercel.
 
 ## Project structure
 
@@ -10,8 +10,8 @@ Stack: React, Vite, Tailwind CSS, Node.js, Express, SQLite.
 server/           Backend
   src/index.js    Starts the server
   src/app.js      API routes and validation
-  src/db.js       SQLite tables and seed data
-  test/           API tests
+  src/store/      Database: SQLite (local, Docker) or Postgres (Vercel)
+  test/           API tests, run against both databases
 
 client/           Frontend
   src/App.jsx     Main page
@@ -49,6 +49,14 @@ docker run -p 3000:3000 -v reading-data:/data reading-challenge
 
 Open http://localhost:3000
 
+## Deploy on Vercel
+
+1. Import the GitHub repo in Vercel.
+2. In the project, open Storage, create a Neon Postgres database and connect it. This sets DATABASE_URL.
+3. Redeploy.
+
+When DATABASE_URL is set the app uses Postgres, so data survives refreshes, redeploys and restarts. Tables and the six books are created on first request.
+
 ## API
 
 | Method | Path | Body |
@@ -62,7 +70,7 @@ Unknown book IDs return 404. A missing or non-boolean status returns 400.
 
 ## Verify
 
-Run the tests:
+Run the tests (SQLite and Postgres):
 
 ```bash
 npm test

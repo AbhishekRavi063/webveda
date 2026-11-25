@@ -23,60 +23,63 @@ const progressSchema = z.object({
     .max(MAX_VIDEO_SECONDS, 'Field "position" is too large.'),
 });
 
-function toBook(row) {
-  return { id: row.id, title: row.title, list: row.list, read: row.read === 1 };
-}
+// Express 4 does not catch errors from async handlers; pass them to next().
+const handle = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 function validationError(res, result) {
   return res.status(400).json({ error: result.error.issues[0]?.message ?? 'Invalid request body.' });
 }
 
-export function createApp({ db, staticDir } = {}) {
+/**
+ * Builds the Express app. `store` is the database (SQLite or Postgres, see
+ * store/index.js); every route goes through it, so the routes don't care which.
+ */
+export function createApp({ store, staticDir } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '10kb' }));
 
-  const stmts = {
-    allBooks: db.prepare("SELECT * FROM books ORDER BY CASE list WHEN 'fiction' THEN 0 ELSE 1 END, position"),
-    getBook: db.prepare('SELECT * FROM books WHERE id = ?'),
-    setRead: db.prepare('UPDATE books SET read = ? WHERE id = ?'),
-    getProgress: db.prepare('SELECT position, updated_at FROM video_progress WHERE id = 1'),
-    setProgress: db.prepare("UPDATE video_progress SET position = ?, updated_at = datetime('now') WHERE id = 1"),
-  };
-
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-  app.get('/api/books', (_req, res) => {
-    res.json(stmts.allBooks.all().map(toBook));
-  });
+  app.get(
+    '/api/books',
+    handle(async (_req, res) => {
+      res.json(await store.listBooks());
+    })
+  );
 
   // PUT sets an absolute value (not a toggle), so sending the same request
   // twice leaves the same status: the endpoint is idempotent.
-  app.put('/api/books/:id', (req, res) => {
-    const existing = stmts.getBook.get(req.params.id);
-    if (!existing) {
-      return res.status(404).json({ error: `Unknown book id "${req.params.id}".` });
-    }
-    const parsed = bookUpdateSchema.safeParse(req.body ?? {});
-    if (!parsed.success) return validationError(res, parsed);
+  app.put(
+    '/api/books/:id',
+    handle(async (req, res) => {
+      const existing = await store.getBook(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: `Unknown book id "${req.params.id}".` });
+      }
+      const parsed = bookUpdateSchema.safeParse(req.body ?? {});
+      if (!parsed.success) return validationError(res, parsed);
 
-    stmts.setRead.run(parsed.data.read ? 1 : 0, existing.id);
-    res.json(toBook(stmts.getBook.get(existing.id)));
-  });
+      res.json(await store.setRead(existing.id, parsed.data.read));
+    })
+  );
 
-  app.get('/api/video/progress', (_req, res) => {
-    const row = stmts.getProgress.get();
-    res.json({ position: row.position, updatedAt: row.updated_at });
-  });
+  app.get(
+    '/api/video/progress',
+    handle(async (_req, res) => {
+      res.json(await store.getProgress());
+    })
+  );
 
-  app.put('/api/video/progress', (req, res) => {
-    const parsed = progressSchema.safeParse(req.body ?? {});
-    if (!parsed.success) return validationError(res, parsed);
+  app.put(
+    '/api/video/progress',
+    handle(async (req, res) => {
+      const parsed = progressSchema.safeParse(req.body ?? {});
+      if (!parsed.success) return validationError(res, parsed);
 
-    stmts.setProgress.run(parsed.data.position);
-    const row = stmts.getProgress.get();
-    res.json({ position: row.position, updatedAt: row.updated_at });
-  });
+      res.json(await store.setProgress(parsed.data.position));
+    })
+  );
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));
 
