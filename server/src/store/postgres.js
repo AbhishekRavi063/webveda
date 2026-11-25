@@ -69,7 +69,7 @@ export function createPostgresStore(query) {
     async setRead(id, read) {
       await init();
       const rows = await query('UPDATE books SET read = $1 WHERE id = $2 RETURNING *', [read, id]);
-      return toBook(rows[0]);
+      return toBook(rows[0]) ?? null;
     },
     async getProgress() {
       await init();

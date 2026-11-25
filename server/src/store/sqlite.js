@@ -58,8 +58,8 @@ export function createSqliteStore(file) {
       return toBook(q.get.get(id)) ?? null;
     },
     async setRead(id, read) {
-      q.setRead.run(read ? 1 : 0, id);
-      return toBook(q.get.get(id));
+      const { changes } = q.setRead.run(read ? 1 : 0, id);
+      return changes ? toBook(q.get.get(id)) : null;
     },
     async getProgress() {
       return toProgress(q.getProgress.get());

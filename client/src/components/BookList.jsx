@@ -27,7 +27,7 @@ function Spinner() {
   return <span className="size-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" aria-hidden="true" />;
 }
 
-export default function BookList({ list, title, books, pending, errors, onToggle, delay = 0 }) {
+export default function BookList({ list, title, books, pending, errors, slow = {}, onToggle, delay = 0 }) {
   const style = LIST_STYLES[list];
   // The checkbox shows the in-flight value while saving; otherwise the last
   // value the server confirmed. A failed save simply clears `pending`, so the
@@ -82,7 +82,10 @@ export default function BookList({ list, title, books, pending, errors, onToggle
 
       <ul className="space-y-2.5">
         {displayed.map((book, i) => {
+          // The new value shows instantly; the spinner only appears if the
+          // save is still running after a short delay (see useBooks).
           const saving = pending[book.id] !== undefined;
+          const slowSave = saving && slow[book.id];
           const error = errors[book.id];
           const meta = BOOK_META[book.id] ?? { author: '', spine: '#9ea1b8' };
           return (
@@ -91,7 +94,7 @@ export default function BookList({ list, title, books, pending, errors, onToggle
                 key={error ?? 'ok'}
                 className={`group relative flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition-[transform,box-shadow,background-color,border-color] duration-500 ease-smooth hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgba(35,44,110,0.35)] active:translate-y-0 active:scale-[0.99] active:duration-150 ${
                   book.shown ? style.readRow : 'border-slate-200 bg-white hover:border-brand-tint'
-                } ${saving ? 'cursor-wait' : ''} ${error ? 'animate-shake border-red-300' : ''}`}
+                } ${slowSave ? 'cursor-wait' : ''} ${error ? 'animate-shake border-red-300' : ''}`}
               >
                 {/* Book spine */}
                 <span
@@ -112,7 +115,7 @@ export default function BookList({ list, title, books, pending, errors, onToggle
                 </span>
 
                 <span className="hidden text-xs font-medium text-muted sm:inline md:hidden lg:inline">
-                  {saving ? 'Saving…' : book.shown ? 'Read' : 'Unread'}
+                  {slowSave ? 'Saving…' : book.shown ? 'Read' : 'Unread'}
                 </span>
 
                 <input
@@ -129,7 +132,7 @@ export default function BookList({ list, title, books, pending, errors, onToggle
                   }`}
                   aria-hidden="true"
                 >
-                  {saving ? (
+                  {slowSave ? (
                     <Spinner />
                   ) : (
                     book.shown && (

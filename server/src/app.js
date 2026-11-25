@@ -53,14 +53,15 @@ export function createApp({ store, staticDir } = {}) {
   app.put(
     '/api/books/:id',
     handle(async (req, res) => {
-      const existing = await store.getBook(req.params.id);
-      if (!existing) {
-        return res.status(404).json({ error: `Unknown book id "${req.params.id}".` });
-      }
       const parsed = bookUpdateSchema.safeParse(req.body ?? {});
       if (!parsed.success) return validationError(res, parsed);
 
-      res.json(await store.setRead(existing.id, parsed.data.read));
+      // One database call: the UPDATE returns the book, or nothing if the id is unknown.
+      const book = await store.setRead(req.params.id, parsed.data.read);
+      if (!book) {
+        return res.status(404).json({ error: `Unknown book id "${req.params.id}".` });
+      }
+      res.json(book);
     })
   );
 

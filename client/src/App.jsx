@@ -13,7 +13,7 @@ import { useToast } from './hooks/useToast.js';
  */
 export default function App() {
   const { toast, showToast } = useToast();
-  const { books, status, loadError, pending, errors, loadBooks, toggleBook } = useBooks({
+  const { books, status, loadError, pending, errors, slow, loadBooks, toggleBook } = useBooks({
     onSaved: (book) =>
       showToast(book.read ? `Marked “${book.title}” as read ✓` : `Marked “${book.title}” as unread`),
   });
@@ -21,7 +21,7 @@ export default function App() {
   const fiction = books.filter((b) => b.list === 'fiction');
   const nonfiction = books.filter((b) => b.list === 'nonfiction');
   const totalRead = books.filter((b) => b.read).length;
-  const listProps = { pending, errors, onToggle: toggleBook };
+  const listProps = { pending, errors, slow, onToggle: toggleBook };
 
   return (
     <div className="min-h-dvh pb-16">
