@@ -51,6 +51,7 @@ export default function WelcomeVideo() {
   const [muted, setMuted] = useState(true); // autoplay is only allowed while muted
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [aspect, setAspect] = useState(16 / 9); // replaced by the file's real shape once loaded
 
   const [savedPosition, setSavedPosition] = useState(null); // null = not loaded yet
   const [progressError, setProgressError] = useState('');
@@ -192,7 +193,8 @@ export default function WelcomeVideo() {
       >
         <video
           ref={videoRef}
-          className="aspect-video w-full cursor-pointer"
+          className="block w-full cursor-pointer object-cover"
+          style={{ aspectRatio: aspect }}
           src={VIDEO_URL}
           muted
           loop
@@ -200,7 +202,10 @@ export default function WelcomeVideo() {
           preload="metadata"
           onClick={togglePlay}
           onLoadedMetadata={(e) => {
-            setDuration(e.currentTarget.duration);
+            const v = e.currentTarget;
+            // Match the box to the video so there are no black bars.
+            if (v.videoWidth && v.videoHeight) setAspect(v.videoWidth / v.videoHeight);
+            setDuration(v.duration);
             setMetadataReady(true);
           }}
           onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
